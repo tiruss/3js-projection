@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Three.js Reverse Projection with Diffusion</title>
+  <!-- Three.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #222;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    /* 업로드 입력창과 프롬프트 입력창 모두 보이도록 설정 */
+    #upload, #promptForm {
+      position: absolute;
+      left: 10px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    #upload {
+      top: 10px;
+    }
+    #promptForm {
+      top: 60px;
+    }
+    #promptForm input[type="text"] {
+      padding: 3px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
+    #promptForm button {
+      padding: 3px 8px;
+      font-size: 1rem;
+      border: none;
+      background-color: #0a74da;
+      color: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    #promptForm button:hover {
+      background-color: #0961b5;
+    }
+  </style>
+</head>
+<body>
+  <!-- 파일 업로드 입력창 -->
+  <input type="file" id="upload" accept="image/*"/>
+
+  <!-- 텍스트 프롬프트 입력 폼 -->
+  <form id="promptForm">
+    <input type="text" id="promptInput" placeholder="Enter text prompt" required/>
+    <button type="submit">Generate Image</button>
+  </form>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
