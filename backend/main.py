@@ -1,15 +1,23 @@
-# main.py
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import base64
 import io
-from PIL import Image, ImageDraw, ImageFont
+from diffusers import StableDiffusionPipeline
+import torch
+
+# 파이프라인 초기화 (최초 1회 실행)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model_id = "runwayml/stable-diffusion-v1-5"
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    model_id,
+    torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+    use_safetensors=True
+).to(device)
 
 app = FastAPI()
 
-# 프론트엔드에서 호출할 수 있도록 CORS 설정 (모든 도메인 허용)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,29 +28,33 @@ app.add_middleware(
 
 class PromptRequest(BaseModel):
     prompt: str
+    negative_prompt: str = None  # 옵션: 부정 프롬프트
+    steps: int = 50              # 옵션: 추론 스텝 수
 
 @app.post("/generate")
 async def generate_image(request: PromptRequest):
-    prompt = request.prompt
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Prompt is missing.")
+    if not request.prompt:
+        raise HTTPException(400, "Prompt required")
 
-    # 실제 이미지 디퓨전 모델 대신 간단한 PIL 예시로 이미지를 생성합니다.
-    img = Image.new("RGB", (256, 256), color="gray")
-    d = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("arial.ttf", 15)
-    except Exception:
-        font = None
-    d.text((10, 10), prompt, fill=(255, 255, 255), font=font)
-    
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    data_url = f"data:image/png;base64,{img_str}"
-    
-    return {"image": data_url}
+        # 이미지 생성 실행
+        image = pipe(
+            prompt=request.prompt,
+            negative_prompt=request.negative_prompt,
+            num_inference_steps=request.steps,
+            guidance_scale=7.5
+        ).images[0]
+
+        # Base64 인코딩
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        return {"image": f"data:image/png;base64,{img_str}"}
+
+    except Exception as e:
+        raise HTTPException(500, f"Generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
